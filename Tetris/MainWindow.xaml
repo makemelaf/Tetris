@@ -60,8 +60,10 @@
             Grid.Column="2"
             VerticalAlignment="Center"
             HorizontalAlignment="Left">
-            <TextBlock Text="Next"
-                       TextAlignment="Center"/>
+
+            <TextBlock x:Name="ShuffleButton"
+        Text="Next"
+        TextAlignment="Center"/>
             <Image x:Name="NextImage"
                    Margin="20"
                    Width="125"/>
@@ -93,7 +95,20 @@
                         Click="PlayAgain_Click"/>
 
             </StackPanel>
+            
+            <Grid x:Name="ShuffleScreen" Visibility="Hidden">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Shuffling Image -->
+                <Image x:Name="ShufflingImage" Source="Assets/Block-Empty.png" Width="150" Height="150" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <!-- Shuffle Button -->
+                <Button Content="Shuffle" Click="ShuffleButton_Click" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,20"/>
             </Grid>
+        </Grid>
         <MediaElement x:Name="backgroundMusic" Source="Assets\Music.mp3" MediaEnded="BackgroundMusic_MediaEnded"
               LoadedBehavior="Play" UnloadedBehavior="Manual" Volume="0.2"/>
         <MediaElement x:Name="lineClearSound" Source="Assets\clearsfx.mp3" LoadedBehavior="Manual" UnloadedBehavior="Manual"/>

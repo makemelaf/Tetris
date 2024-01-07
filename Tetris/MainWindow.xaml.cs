@@ -17,7 +17,7 @@ namespace Tetris
     /// </summary>
     public partial class MainWindow : Window
     {
-
+        private BlockQueue blockQueue;
         private DispatcherTimer timer;
         private TimeSpan elapsedTime;
 
@@ -56,6 +56,7 @@ namespace Tetris
         {
             InitializeComponent();
             imageControls = SetupGameCanvas(gameState.GameGrid);
+            blockQueue = new BlockQueue();
 
             backgroundMusic = new MediaElement
             {
@@ -170,6 +171,9 @@ namespace Tetris
             backgroundMusic.Play();
         }
 
+
+
+
         private Image[,] SetupGameCanvas(GameGrid grid)
         {
             Image[,] imageControls = new Image[grid.Rows, grid.Columns];
@@ -194,6 +198,8 @@ namespace Tetris
             return imageControls;
         }
 
+
+
         private void DrawGrid(GameGrid grid)
         {
             for (int r = 0; r < grid.Rows; r++)
@@ -208,6 +214,8 @@ namespace Tetris
         }
        
 
+
+
         private void DrawBlock(Block block)
         {
             foreach (Position p in block.TilePositions())
@@ -217,11 +225,16 @@ namespace Tetris
             }
         }
 
+
+
+
         private void DrawNextBlock(BlockQueue blockQueue) 
         {
             Block next = blockQueue.NextBlock;
             NextImage.Source = blockImages[next.Id];
         }
+
+
 
         private void DrawHeldBlock(Block heldBlock)
         {
@@ -235,6 +248,9 @@ namespace Tetris
             }
         }
 
+
+
+
         private void DrawGhostBlock(Block block)
         {
             int dropDistance = gameState.BlockDropDistance();
@@ -246,6 +262,11 @@ namespace Tetris
             }    
         }
 
+
+
+
+
+
         private void Draw(GameState gameState)
         {
             DrawGrid(gameState.GameGrid);
@@ -256,16 +277,62 @@ namespace Tetris
             ScoreText.Text = $"Score: {gameState.Score}";
         }
 
+        private bool nextButtonClicked = false;
+
+        private int currentImageIndex = 0;
+        private string[] blockImagePaths = new string[]
+        {
+            "Assets/Block-I.png",
+            "Assets/Block-J.png",
+            "Assets/Block-L.png",
+            "Assets/Block-O.png",
+            "Assets/Block-S.png",
+            "Assets/Block-T.png",
+            "Assets/Block-Z.png"
+        };
+
+
+
+
+
+
+        private void ShuffleButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Update the shuffling image source
+            ShufflingImage.Source = new BitmapImage(new Uri(blockImagePaths[currentImageIndex], UriKind.RelativeOrAbsolute));
+
+            // Increment index for the next shuffle
+            currentImageIndex = (currentImageIndex + 1) % blockImagePaths.Length;
+        }
+
+        private bool isShuffleMode = false;
+
+
+
+
+
+
+
         private async Task GameLoop()
         {
             Draw(gameState);
+            gameState.PlaceInitialBlock();
 
             while (!gameState.GameOver)
             {
-                int delay = Math.Max(minDelay, maxDelay - (gameState.Score * delayDecrease));
-                await Task.Delay(delay);
-                gameState.MoveBlockDown();
-                Draw(gameState);
+                await Task.Delay(100);
+
+                if (nextButtonClicked)
+                {
+                    // Display the shuffle screen
+                    ShowShuffleScreen();
+                }
+                else
+                {
+                    gameState.MoveBlockDown();
+                    Draw(gameState);
+                }
+
                 StopTimer();
             }
 
@@ -273,11 +340,70 @@ namespace Tetris
             FinalScoreText.Text = $"Score: {gameState.Score}";
             gameOverSound.Position = TimeSpan.Zero;
             gameOverSound.Play();
-            
-
-
         }
 
+        private void ShowShuffleScreen()
+        {
+            // Hide Tetris grid and show shuffle screen
+            GameCanvas.Visibility = Visibility.Hidden;
+            ShuffleScreen.Visibility = Visibility.Visible;
+
+            // Reset the index for shuffling
+            currentImageIndex = 0;
+
+            // Start shuffling timer
+            StartShufflingTimer();
+        }
+
+        private async void StartShufflingTimer()
+        {
+            while (!nextButtonClicked && currentImageIndex < blockImagePaths.Length)
+            {
+                // Update shuffling image
+                ShufflingImage.Source = new BitmapImage(new Uri(blockImagePaths[currentImageIndex], UriKind.RelativeOrAbsolute));
+
+                // Increment index for the next shuffle
+                currentImageIndex++;
+
+                await Task.Delay(200);  // Adjust the delay if needed
+            }
+
+            // Reset next button click
+            nextButtonClicked = false;
+
+            // Hide shuffle screen and show Tetris grid
+            ShuffleScreen.Visibility = Visibility.Hidden;
+            GameCanvas.Visibility = Visibility.Visible;
+        }
+
+
+        private async Task EnterShuffleMode()
+        {
+            // Disable Tetris grid and show shuffle screen
+            GameCanvas.Visibility = Visibility.Hidden;
+            ShuffleScreen.Visibility = Visibility.Visible;
+
+            // Implement the shuffle logic here
+            await ShuffleBlocks();
+
+            // Hide shuffle screen and show Tetris grid
+            GameCanvas.Visibility = Visibility.Visible;
+            ShuffleScreen.Visibility = Visibility.Hidden;
+        }
+
+        private async Task ShuffleBlocks()
+        {
+            // Implement your shuffle logic here
+            // This could involve animating the shuffling image and randomly selecting the next block
+            // Once the shuffle is complete, update the gameState with the selected block
+
+            // For demonstration purposes, let's simulate a delay
+            await Task.Delay(3000);
+
+            // For demonstration purposes, let's select a random block after shuffling
+            gameState.BlockQueue.ShuffleBlocks();
+            gameState.BlockQueue.RollDice();
+        }
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (gameState.GameOver)
@@ -285,31 +411,36 @@ namespace Tetris
                 return;
             }
 
-            switch (e.Key)
+            if (e.Key == Key.Space && !ShuffleButton.IsFocused)
             {
-                case Key.Left:
-                    gameState.MoveBlockLeft();
-                    break;
-                case Key.Right:
-                    gameState.MoveBlockRight();
-                    break;
-                case Key.Down:
-                    gameState.MoveBlockDown();
-                    break;
-                case Key.Up:
-                    gameState.RotateBlockCW();
-                    break;
-                case Key.Z:
-                    gameState.RotateBlockCCW();
-                    break;
-                case Key.LeftShift:
-                    gameState.HoldBlock();
-                    break;
-                case Key.Space:
-                    gameState.DropBlock();
-                    break;
-                default:
-                    return;
+                gameState.DropBlock();
+                blockDroppedAfterNext = true; // Set the flag when dropping with space key
+            }
+            else if (!nextButtonClicked && autoFall) // Check if the block should fall automatically
+            {
+                switch (e.Key)
+                {
+                    case Key.Left:
+                        gameState.MoveBlockLeft();
+                        break;
+                    case Key.Right:
+                        gameState.MoveBlockRight();
+                        break;
+                    case Key.Down:
+                        gameState.MoveBlockDown();
+                        break;
+                    case Key.Up:
+                        gameState.RotateBlockCW();
+                        break;
+                    case Key.Z:
+                        gameState.RotateBlockCCW();
+                        break;
+                    case Key.LeftShift:
+                        gameState.HoldBlock();
+                        break;
+                    default:
+                        return;
+                }
             }
 
             Draw(gameState);
@@ -333,5 +464,8 @@ namespace Tetris
             backgroundMusic.Close();
             lineClearSound.Close();
         }
+
+
+   
     }
 }

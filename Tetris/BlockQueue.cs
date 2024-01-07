@@ -5,46 +5,59 @@ using System.Text;
 using System.Threading.Tasks;
 using System;
 using System.Linq.Expressions;
+using System.Windows.Controls;
 
 namespace Tetris
 {
     public class BlockQueue
     {
-        private readonly Block[] blocks = new Block[]
-            {
-                new IBlock(),
-                new JBlock(),
-                new LBlock(),
-                new OBlock(),
-                new SBlock(),
-                new TBlock(),
-                new ZBlock()
-            };
-        private readonly Random random = new Random();
+        
+    private readonly Random random = new Random();
+        private List<Block> blocks;
+        private int currentIndex;
 
         public Block NextBlock { get; private set; }
 
-        public BlockQueue() 
+        public BlockQueue()
         {
-            NextBlock = RandomBlock();
+            blocks = new List<Block>
+        {
+            new IBlock(),
+            new JBlock(),
+            new LBlock(),
+            new OBlock(),
+            new SBlock(),
+            new TBlock(),
+            new ZBlock()
+        };
+
+            ShuffleBlocks();
+            SetNextBlock();
         }
 
-        private Block RandomBlock()
+        public void ShuffleBlocks()
         {
-            return blocks[random.Next(blocks.Length)];
+            blocks = blocks.OrderBy(x => random.Next()).ToList();
+            currentIndex = 0;
+        }
+
+        private void SetNextBlock()
+        {
+            NextBlock = blocks[currentIndex];
         }
 
         public Block GetAndUpdate()
         {
             Block block = NextBlock;
+            currentIndex++;
 
-            do
+            if (currentIndex >= blocks.Count)
             {
-                NextBlock = RandomBlock();
+                ShuffleBlocks();
             }
-            while (block.Id == NextBlock.Id);
+
+            SetNextBlock();
             return block;
         }
-
     }
 }
